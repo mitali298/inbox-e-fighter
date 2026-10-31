@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INBOX STREET FIGHTER — Your Inbox Is The Battlefield</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🥊</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,600;0,700;1,700&family=Orbitron:wght@500;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cyber: {
+              bg: '#070a13',
+              card: '#0c1222',
+              border: '#1e293b',
+              blue: '#00f0ff',
+              purple: '#b026ff',
+              pink: '#ff007f',
+              yellow: '#ffe600',
+              green: '#00ff66',
+              red: '#ff2a55',
+            }
+          },
+          fontFamily: {
+            arcade: ['"Press Start 2P"', 'monospace'],
+            display: ['"Chakra Petch"', '"Orbitron"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          boxShadow: {
+            'neon-blue': '0 0 15px rgba(0, 240, 255, 0.5), 0 0 30px rgba(0, 240, 255, 0.2)',
+            'neon-pink': '0 0 15px rgba(255, 0, 127, 0.5), 0 0 30px rgba(255, 0, 127, 0.2)',
+            'neon-purple': '0 0 15px rgba(176, 38, 255, 0.5), 0 0 30px rgba(176, 38, 255, 0.2)',
+            'neon-yellow': '0 0 15px rgba(255, 230, 0, 0.5), 0 0 30px rgba(255, 230, 0, 0.2)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #070a13;
+      color: #f1f5f9;
+      font-family: 'Chakra Petch', sans-serif;
+      overflow-x: hidden;
+      user-select: none;
+    }
+    .cyber-bg {
+      background-color: #070a13;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(176, 38, 255, 0.15) 0%, transparent 60%),
+        radial-gradient(circle at 90% 80%, rgba(0, 240, 255, 0.1) 0%, transparent 50%),
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+    }
+    .crt::before {
+      content: " ";
+      display: block;
+      position: fixed;
+      top: 0; left: 0; bottom: 0; right: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      z-index: 999;
+      background-size: 100% 4px, 6px 100%;
+      pointer-events: none;
+      opacity: 0.7;
+    }
+    .neon-text-blue { text-shadow: 0 0 5px #00f0ff, 0 0 15px #00f0ff, 0 0 30px #00f0ff; }
+    .neon-text-pink { text-shadow: 0 0 5px #ff007f, 0 0 15px #ff007f, 0 0 30px #ff007f; }
+    .neon-text-purple { text-shadow: 0 0 5px #b026ff, 0 0 15px #b026ff, 0 0 30px #b026ff; }
+    .neon-text-yellow { text-shadow: 0 0 5px #ffe600, 0 0 15px #ffe600, 0 0 30px #ffe600; }
+    
+    @keyframes radarSpin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .radar-beam { animation: radarSpin 4s linear infinite; }
+
+    @keyframes floatDamage {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-55px) scale(1.35); }
+    }
+    .damage-pop { animation: floatDamage 0.85s ease-out forwards; }
+  </style>
+  <!-- React 18, ReactDOM, Babel & Lucide -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-[#070a13] text-slate-100">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useCallback, useMemo } = React;
+
+    // ==========================================
+    // PROCEDURAL 8-BIT SOUND SYNTHESIZER
+    // ==========================================
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.isMuted = false;
+      }
+      initCtx() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+      playCoin() {
+        if (this.isMuted) return;
+        try {
+          this.initCtx();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(987.77, now);
+          osc.frequency.setValueAtTime(1318.51, now + 0.08);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.35);
+        } catch(e) {}
+      }
+      playHeavyPunch() {
+        if (this.isMuted) return;
+        try {
+          this.initCtx();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(280, now);
+          osc.frequency.exponentialRampToValueAtTime(30, now + 0.22);
+          gain.gain.setValueAtTime(0.35, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.22);
+        } catch(e) {}
+      }
+      playQuickSlash() {
+        if (this.isMuted) return;
+        try {
+          this.initCtx();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(800, now);
+          osc.frequency.exponentialRampToValueAtTime(150, now + 0.12);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.12);
+        } catch(e) {}
+      }
+      playShield() {
+        if (this.isMuted) return;
+        try {
+          this.initCtx();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.linearRampToValueAtTime(950, now + 0.15);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        } catch(e) {}
+      }
+      playProtectFanfare() {
+        if (this.isMuted) return;
+        try {
+          this.initCtx();
+          if (!this.ctx) return;
+          const notes = [523.25, 659.25, 783.99, 1046.50];
+          notes.forEach((freq, idx) => {
+            if (!this.ctx) return;
+            const now = this.ctx.currentTime + idx * 0.08;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.25);
+          });
+        } catch(e) {}
+      }
+      playSpecialBeam() {
+        if (this.isMuted) return;
+        try {
+          this.initCtx();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(400, now);
+          osc.frequency.exponentialRampToValueAtTime(1800, now + 0.2);
+          osc.frequency.exponentialRampToValueAtTime(100, now + 0.5);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.5);
+        } catch(e) {}
+      }
+      playKO() {
+        if (this.isMuted) return;
+        try {
+          this.initCtx();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(160, now);
+          osc.frequency.exponentialRampToValueAtTime(20, now + 0.45);
+          gain.gain.setValueAtTime(0.4, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.45);
+        } catch(e) {}
+      }
+      playStageClear() {
+        if (this.isMuted) return;
+        try {
+          this.initCtx();
+          if (!this.ctx) return;
+          const notes = [440, 554.37, 659.25, 880];
+          notes.forEach((freq, idx) => {
+            if (!this.ctx) return;
+            const now = this.ctx.currentTime + idx * 0.12;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(freq, now);
+            gain.gain.setValueAtTime(0.22, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.3);
+          });
+        } catch(e) {}
+      }
+      playBeep() {
+        if (this.isMuted) return;
+        try {
+          this.initCtx();
+          if (!this.ctx) return;
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(800, now);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.05);
+        } catch(e) {}
+      }
+    }
+    const sound = new SoundEngine();
+
+    // ==========================================
+    // 5 LEVELS & 25 SAMPLE EMAIL MONSTERS
+    // ==========================================
+    const LEVEL_CONFIGS = [
+      { id: 1, name: 'SPAM ARENA', subtitle: '5 Red Threat Monsters', themeColor: '#ff2a55', icon: '🔥', bgGradient: 'from-red-950/60 via-slate-950 to-[#070a13]' },
+      { id: 2, name: 'PROMOTION STREET', subtitle: '5 Purple Discount Beasts', themeColor: '#b026ff', icon: '🛍️', bgGradient: 'from-purple-950/60 via-slate-950 to-[#070a13]' },
+      { id: 3, name: 'NOTIFICATION CITY', subtitle: '5 Blue Social Leeches', themeColor: '#00f0ff', icon: '⚡', bgGradient: 'from-cyan-950/60 via-slate-950 to-[#070a13]' },
+      { id: 4, name: 'IMPORTANT EMAIL CASTLE', subtitle: '5 Golden Protected Characters', themeColor: '#ffe600', icon: '🏰', bgGradient: 'from-amber-950/60 via-slate-950 to-[#070a13]' },
+      { id: 5, name: 'FINAL INBOX BOSS', subtitle: '5 Elite Overlords & Megabyte Boss', themeColor: '#ff007f', icon: '👑', bgGradient: 'from-fuchsia-950/70 via-slate-950 to-[#070a13]' }
+    ];
+
+    const ALL_EMAIL_MONSTERS = [
+      // Level 1: Spam (Red)
+      { id: 's1', levelIndex: 1, category: 'spam', subject: '🚨 URGENT: Unauthorized Bank Login ($4,200 Transfer Pending)', sender: 'Chase-Security-Verify', senderEmail: 'alerts@chase-secure-update-99.ru', date: '1 min ago', snippet: 'Suspicious login detected in Moscow, Russia. Your account will be locked unless verified within 15 mins.', fullBody: 'SECURITY ALERT - IMMEDIATE ATTENTION REQUIRED\n\nTransfer of $4,200 pending. Confirm credentials at: http://chase-secure-phish.ru', monsterName: 'PHISH DRAGON', monsterTitle: 'RED THREAT LEVEL S', avatar: '🐉', maxHp: 80, currentHp: 80, weakness: 'Weak to HEAVY PUNCH [J]', recommended: 'punch', intent: 'Phishing credential theft', senderTrust: '0% Unverified', threatRating: 'CRITICAL', aiRec: 'HEAVY PUNCH [J] to archive and incinerate.' },
+      { id: 's2', levelIndex: 1, category: 'spam', subject: '🪙 Satoshi Airdrop: Claim 2.45 BTC ($165,000) Wallet Expiring!', sender: 'Satoshi Wealth', senderEmail: 'airdrop@crypto-free-claim.xyz', date: '6 mins ago', snippet: 'Your wallet has been selected to receive 2.45 Bitcoin. Connect seed phrase now.', fullBody: 'Submit your 12-word seed phrase on our bridge to claim your 2.45 BTC.', monsterName: 'RANSOM VIPER', monsterTitle: 'SLITHERING SCAMMER', avatar: '🐍', maxHp: 70, currentHp: 70, weakness: 'Weak to HEAVY PUNCH [J]', recommended: 'punch', intent: 'Seed phrase wallet drain', senderTrust: '0%', threatRating: 'HIGH', aiRec: 'HEAVY PUNCH [J] to eliminate scam bot.' },
+      { id: 's3', levelIndex: 1, category: 'spam', subject: '📦 FedEx: Package delivery failed due to unpaid $2.49 customs fee', sender: 'FedEx Express Courier', senderEmail: 'tracking@fedx-customs-hold.info', date: '18 mins ago', snippet: 'Parcel #FX-90821-US is on hold. Pay $2.49 fee within 24 hours.', fullBody: 'Fee Outstanding: $2.49 USD. Enter credit card info to reschedule delivery.', monsterName: 'CLICKBAIT IMP', monsterTitle: 'DELIVERY FRAUDSTER', avatar: '😈', maxHp: 75, currentHp: 75, weakness: 'Weak to HEAVY PUNCH [J]', recommended: 'punch', intent: 'Credit card harvesting', senderTrust: '2%', threatRating: 'MEDIUM-HIGH', aiRec: 'HEAVY PUNCH [J] to discard.' },
+      { id: 's4', levelIndex: 1, category: 'spam', subject: '📄 INVOICE #89211_OVERDUE - Wire immediate payment', sender: 'Global Supplies Billing', senderEmail: 'accounting@bogus-invoicing-corp.cc', date: '32 mins ago', snippet: 'Attached invoice is 45 days past due. Open attachment Invoice_89211.pdf.exe.', fullBody: 'Total $9,840.50. Execute attached PDF.exe to confirm wiring date.', monsterName: 'TROJAN GOBLIN', monsterTitle: 'MALWARE CARRIER', avatar: '👺', maxHp: 85, currentHp: 85, weakness: 'Weak to HEAVY PUNCH [J]', recommended: 'punch', intent: 'Executable malware infection', senderTrust: '0%', threatRating: 'CRITICAL', aiRec: 'HEAVY PUNCH [J] — Do not touch attachment!' },
+      { id: 's5', levelIndex: 1, category: 'spam', subject: '⚠️ Confidential acquisition: Are you at your desk right now?', sender: 'Imposter CEO', senderEmail: 'ceo.executive.office@mail-forwarder.co', date: '45 mins ago', snippet: 'Need you to buy 10 x $100 Apple gift cards for client bonuses immediately.', fullBody: 'I am in a closed meeting. Buy 10 x $100 Apple cards, scratch backs and email photos.', monsterName: 'SPOOF SPECTER', monsterTitle: 'CEO FRAUD BOSS', avatar: '👻', maxHp: 100, currentHp: 100, weakness: 'Weak to HEAVY PUNCH [J]', recommended: 'punch', intent: 'Executive impersonation gift card fraud', senderTrust: '0%', threatRating: 'EXTREME', aiRec: 'HEAVY PUNCH [J] to incinerate.' },
+
+      // Level 2: Promotions (Purple)
+      { id: 'p1', levelIndex: 2, category: 'promotions', subject: '🔥 80% OFF EVERYTHING! Midnight Cyber Blowout Starts Now!', sender: 'HyperGear Electronics', senderEmail: 'deals@hypergear.com', date: '10 mins ago', snippet: 'Monitors, mechanical keyboards, slashed up to 80% off.', fullBody: 'Use code CYBER80 at checkout for instant discounts.', monsterName: 'FLASH SALE HYDRA', monsterTitle: 'DISCOUNT BEAST', avatar: '👾', maxHp: 80, currentHp: 80, weakness: 'Weak to QUICK ATTACK [K]', recommended: 'quick', intent: 'Commercial retail sales promo', senderTrust: 'Verified merchant', threatRating: 'LOW', aiRec: 'QUICK ATTACK [K] to label [PROMO].' },
+      { id: 'p2', levelIndex: 2, category: 'promotions', subject: '🍕 Craving Pizza? Here is $20 OFF your next 3 DoorDash orders!', sender: 'DoorDash Perks', senderEmail: 'tasty@doordash-offers.com', date: '25 mins ago', snippet: 'Dinner is on us tonight! Enjoy $20 off pizza, sushi, or burgers.', fullBody: 'Apply code PIZZABLAST for $20 off three qualifying orders.', monsterName: 'DISCOUNT DRAKE', monsterTitle: 'COUPON CRUSHER', avatar: '🍕', maxHp: 75, currentHp: 75, weakness: 'Weak to QUICK ATTACK [K]', recommended: 'quick', intent: 'Food delivery discount offer', senderTrust: 'Verified vendor', threatRating: 'LOW', aiRec: 'QUICK ATTACK [K] to label [PROMO].' },
+      { id: 'p3', levelIndex: 2, category: 'promotions', subject: '✈️ Fly to Tokyo for $399 Roundtrip! 48-Hour Airfare Drop', sender: 'Wanderlust Air Deals', senderEmail: 'escapes@wanderlust-air.com', date: '40 mins ago', snippet: 'Non-stop flights from SFO / LAX to Tokyo Narita under $400 roundtrip.', fullBody: 'Book before prices revert at midnight tonight.', monsterName: 'COUPON PHANTOM', monsterTitle: 'AIRFARE SIREN', avatar: '✈️', maxHp: 90, currentHp: 90, weakness: 'Weak to QUICK ATTACK [K]', recommended: 'quick', intent: 'Travel marketing newsletter', senderTrust: 'Verified airline agency', threatRating: 'LOW', aiRec: 'QUICK ATTACK [K] to label [PROMO].' },
+      { id: 'p4', levelIndex: 2, category: 'promotions', subject: '⏰ Last Chance: Your CloudFlow SaaS Pro trial expires tomorrow', sender: 'CloudFlow Metrics', senderEmail: 'billing@cloudflow-saas.io', date: '55 mins ago', snippet: 'Keep your team dashboards and retention by upgrading to an Enterprise seat.', fullBody: 'Your 14-day evaluation is ending in 24 hours. Save 50% today.', monsterName: 'BOGO BEAST', monsterTitle: 'SUBSCRIPTION GOLEM', avatar: '🤖', maxHp: 85, currentHp: 85, weakness: 'Weak to QUICK ATTACK [K]', recommended: 'quick', intent: 'SaaS free trial conversion', senderTrust: 'Legitimate vendor', threatRating: 'MEDIUM', aiRec: 'QUICK ATTACK [K] to label [SAAS].' },
+      { id: 'p5', levelIndex: 2, category: 'promotions', subject: '👟 VIP Early Drop: Limited Cyberpunk Sneaker Collection Live', sender: 'UrbanKicks Official', senderEmail: 'drops@urbankicks.com', date: '1 hour ago', snippet: 'Neon Runner 2099 high-tops just dropped. Only 500 pairs worldwide.', fullBody: 'Exclusive access code for VIP members. Shop the queue now.', monsterName: 'BEHEMOTH BUYER', monsterTitle: 'HYPE TITAN', avatar: '👟', maxHp: 95, currentHp: 95, weakness: 'Weak to QUICK ATTACK [K]', recommended: 'quick', intent: 'Retail FOMO marketing', senderTrust: 'Verified brand', threatRating: 'LOW', aiRec: 'QUICK ATTACK [K] or SPECIAL [U].' },
+
+      // Level 3: Social (Blue)
+      { id: 'so1', levelIndex: 3, category: 'social', subject: '💼 14 people viewed your profile, including a Recruiter from Google', sender: 'LinkedIn Notifications', senderEmail: 'updates@linkedin.com', date: '15 mins ago', snippet: 'Your profile appeared in 42 searches this week for React & AI agents.', fullBody: 'Upgrade to LinkedIn Premium to view all 14 names.', monsterName: 'LIKE LEECH', monsterTitle: 'NETWORK PARASITE', avatar: '💼', maxHp: 85, currentHp: 85, weakness: 'Weak to QUICK ATTACK [K]', recommended: 'quick', intent: 'Social profile view digest', senderTrust: 'Verified LinkedIn', threatRating: 'LOW', aiRec: 'QUICK ATTACK [K] to label [SOCIAL].' },
+      { id: 'so2', levelIndex: 3, category: 'social', subject: '❌ Build #1402 Failed on branch `feat/payment-integration`', sender: 'GitHub Actions', senderEmail: 'notifications@github.com', date: '28 mins ago', snippet: 'Workflow CI Unit Tests failed on commit 9a8c2f1. Click to view logs.', fullBody: 'Status: FAILED (Exit Code 1) in test_stripe_webhook.py:44', monsterName: 'PING PIXIE', monsterTitle: 'CI/CD GREMLIN', avatar: '⚡', maxHp: 90, currentHp: 90, weakness: 'Weak to QUICK ATTACK [K]', recommended: 'quick', intent: 'Developer test failure notification', senderTrust: 'Verified GitHub', threatRating: 'MEDIUM-HIGH', aiRec: 'QUICK ATTACK [K] to label [DEV].' },
+      { id: 'so3', levelIndex: 3, category: 'social', subject: '💬 @tech_guru mentioned you: "This AI Inbox Fighter is blowing my mind!"', sender: 'X (Twitter)', senderEmail: 'notify@x.com', date: '45 mins ago', snippet: 'Tech Guru with 124K followers shared your hackathon project demo.', fullBody: '245 Likes • 68 Retweets on your post.', monsterName: 'FOLLOWER FAIRY', monsterTitle: 'BUZZ SPRITE', avatar: '🐦', maxHp: 80, currentHp: 80, weakness: 'Weak to QUICK ATTACK [K]', recommended: 'quick', intent: 'Social mention notification', senderTrust: 'Verified X.com', threatRating: 'LOW', aiRec: 'QUICK ATTACK [K] to label [SOCIAL].' },
+      { id: 'so4', levelIndex: 3, category: 'social', subject: '🔔 42 unread messages in #general while you were away', sender: 'Slack Notifications', senderEmail: 'feedback@slack.com', date: '1 hour ago', snippet: 'Highlights: Team discussions around demo day and snack poll.', fullBody: 'Catch up directly in your Slack desktop application.', monsterName: 'DM DEMON', monsterTitle: 'CHATTER GOBLIN', avatar: '💬', maxHp: 85, currentHp: 85, weakness: 'Weak to HEAVY PUNCH [J]', recommended: 'punch', intent: 'Workspace chat digest', senderTrust: 'Verified Slack', threatRating: 'LOW', aiRec: 'HEAVY PUNCH [J] to archive digest.' },
+      { id: 'so5', levelIndex: 3, category: 'social', subject: '📅 Accepted: Hackathon Project Showcase (New Room Link)', sender: 'Google Calendar', senderEmail: 'calendar-notification@google.com', date: '1.5 hours ago', snippet: 'Mentors & Judges accepted your invitation for live demo today at 4:00 PM.', fullBody: 'Room: https://meet.google.com/xyz-fight-win', monsterName: 'NOTIFICATION SWARM', monsterTitle: 'CALENDAR GUARDIAN', avatar: '📅', maxHp: 100, currentHp: 100, weakness: 'Weak to QUICK ATTACK [K]', recommended: 'quick', intent: 'Calendar event meeting confirmation', senderTrust: 'Verified Google', threatRating: 'LOW (High Importance)', aiRec: 'QUICK ATTACK [K] to label [CALENDAR].' },
+
+      // Level 4: Important (Golden Protected)
+      { id: 'i1', levelIndex: 4, category: 'important', subject: '🎉 OFFICIAL OFFER: Senior Full-Stack Engineer at OpenAI ($280k + Equity)', sender: 'OpenAI Careers', senderEmail: 'careers@openai.com', date: '20 mins ago', snippet: 'Formal offer of employment: $280,000 base + $350,000 equity grant + $50k signing bonus.', fullBody: 'Attached offer letter requires electronic signature within 5 business days.', monsterName: 'GOLDEN CAREER PALADIN', monsterTitle: 'SACRED OFFER SENTINEL', avatar: '🏆', maxHp: 120, currentHp: 120, weakness: 'MUST DEFEND! Press DEFEND [L]!', recommended: 'defend', intent: 'Executive job offer contract', senderTrust: '100% Authenticated', threatRating: 'ZERO (MAXIMUM VALUE)', aiRec: 'DEFEND [L] IMMEDIATELY! Do NOT archive!' },
+      { id: 'i2', levelIndex: 4, category: 'important', subject: '🏠 Action Required: Counter-Signed Residential Lease Agreement Unit 4B', sender: 'DocuSign Real Estate', senderEmail: 'dse@docusign.net', date: '45 mins ago', snippet: 'Both landlord and management have signed your apartment lease. Save copy.', fullBody: 'Move-in inspection scheduled for the 1st of next month.', monsterName: 'CONTRACT SENTINEL', monsterTitle: 'GOLDEN LEASE GUARDIAN', avatar: '🏰', maxHp: 110, currentHp: 110, weakness: 'MUST DEFEND! Press DEFEND [L]!', recommended: 'defend', intent: 'Executed housing contract', senderTrust: '100% DocuSign', threatRating: 'SAFE & CRITICAL', aiRec: 'DEFEND [L] to preserve in Legal Vault.' },
+      { id: 'i3', levelIndex: 4, category: 'important', subject: '💰 IRS Notice: Your Federal Tax Refund of $3,450.00 is Approved & Sent', sender: 'Internal Revenue Service', senderEmail: 'notices@irs.treasury.gov', date: '1 hour ago', snippet: 'Direct deposit notification: $3,450.00 will post to your checking account.', fullBody: 'Status: Cleared for disbursement. Retain for permanent records.', monsterName: 'TAX GUARDIAN', monsterTitle: 'TREASURY ARCHANGEL', avatar: '💰', maxHp: 115, currentHp: 115, weakness: 'MUST DEFEND! Press DEFEND [L]!', recommended: 'defend', intent: 'Tax refund disbursement receipt', senderTrust: '100% Verified .gov', threatRating: 'SAFE & VALUABLE', aiRec: 'DEFEND [L] to save financial record.' },
+      { id: 'i4', levelIndex: 4, category: 'important', subject: '📊 Q4 Board Review: Financial Statements & Investor Deck Presentation', sender: 'Alex - Founder & CEO', senderEmail: 'alex.ceo@hypergrowth.tech', date: '2 hours ago', snippet: 'Review confidential slide deck for tomorrow’s board review with tier-1 investors.', fullBody: 'Slide 14 has unit economics and runway projections. Confidential.', monsterName: 'BOARDROOM PALADIN', monsterTitle: 'EXECUTIVE VAULT SENTINEL', avatar: '👑', maxHp: 125, currentHp: 125, weakness: 'MUST DEFEND! Press DEFEND [L]!', recommended: 'defend', intent: 'Confidential executive board deck', senderTrust: '100% CEO direct', threatRating: 'HIGH PRIORITY', aiRec: 'DEFEND [L] to keep readily accessible.' },
+      { id: 'i5', levelIndex: 4, category: 'important', subject: '✈️ Boarding Pass & Confirmation: Flight UA 892 SFO -> LHR (Gate B12)', sender: 'United Airlines', senderEmail: 'reservations@united.com', date: '3 hours ago', snippet: 'Flight confirmed for tomorrow. Mobile boarding barcode enclosed. Seat 14A.', fullBody: 'Flight: UA 892 Non-stop SFO -> London Heathrow. Have passport ready.', monsterName: 'PASSPORT SERAPH', monsterTitle: 'SKY HIGH DEFENDER', avatar: '🎫', maxHp: 120, currentHp: 120, weakness: 'MUST DEFEND! Press DEFEND [L]!', recommended: 'defend', intent: 'Active international travel tickets', senderTrust: '100% Airline', threatRating: 'TIME-SENSITIVE', aiRec: 'DEFEND [L] to keep on top of inbox.' },
+
+      // Level 5: Final Inbox Boss
+      { id: 'b1', levelIndex: 5, category: 'important', subject: '💼 Series A Term Sheet: $8,000,000 Lead Investment in your Startup', sender: 'Sequoia Capital', senderEmail: 'partner@sequoiacap.com', date: '30 mins ago', snippet: 'Delivering formal Series A Term Sheet: $8.0M investment at $40M pre-money valuation.', fullBody: 'Let us jump on a call this afternoon to sign and celebrate!', monsterName: 'TITAN OF CAPITAL', monsterTitle: 'VENTURE OVERLORD', avatar: '💎', maxHp: 140, currentHp: 140, weakness: 'MUST DEFEND! Press DEFEND [L]!', recommended: 'defend', intent: 'Series A term sheet funding', senderTrust: '100% Top Venture Firm', threatRating: 'HISTORIC MILESTONE', aiRec: 'DEFEND [L] for +1,500 XP!' },
+      { id: 'b2', levelIndex: 5, category: 'general', subject: '🛡️ CRITICAL CVE-2026-9901: Remote Code Execution in production auth service', sender: 'WhiteHat Security Team', senderEmail: 'security-alert@whitehat.io', date: '45 mins ago', snippet: 'Zero-day vulnerability in JWT authentication library. Patch immediately.', fullBody: 'Vulnerability: Signature bypass RCE. Upgrade package to 4.2.2 now.', monsterName: 'ZERO-DAY HYDRA', monsterTitle: 'CODE BREAKER BOSS', avatar: '🐲', maxHp: 150, currentHp: 150, weakness: 'Weak to HEAVY PUNCH [J]', recommended: 'punch', intent: 'Zero-day security vulnerability alert', senderTrust: 'Verified internal team', threatRating: 'CRITICAL ALERT', aiRec: 'HEAVY PUNCH [J] once patch deployed.' },
+      { id: 'b3', levelIndex: 5, category: 'general', subject: '⚡ AWS Status: US-East-1 Severe Degradation Affecting 60% of Cloud Workloads', sender: 'AWS Health Dashboard', senderEmail: 'support@amazon.com', date: '1 hour ago', snippet: 'Power loss in Virginia datacenters has knocked DynamoDB and EC2 offline.', fullBody: 'Multi-AZ power incident. Estimated recovery time 90 minutes.', monsterName: 'CLOUD TSUNAMI', monsterTitle: 'OUTAGE OVERLORD', avatar: '🌩️', maxHp: 160, currentHp: 160, weakness: 'Weak to QUICK ATTACK [K]', recommended: 'quick', intent: 'Major cloud outage bulletin', senderTrust: 'Verified AWS', threatRating: 'HIGH INFRASTRUCTURE', aiRec: 'QUICK ATTACK [K] to label [OPS].' },
+      { id: 'b4', levelIndex: 5, category: 'important', subject: '⚖️ Formal Trademark & Intellectual Property Inquiry from Silicon Valley Legal', sender: 'Sterling & Sterling LLP', senderEmail: 'inquiries@sterlinglaw.com', date: '2 hours ago', snippet: 'Notice of worldwide trademark coexistence agreement for INBOX STREET FIGHTER.', fullBody: 'All worldwide gaming rights cleared and finalized under Class 9 & 41.', monsterName: 'LEGAL LEVIATHAN', monsterTitle: 'JUDGMENT BEAST', avatar: '⚖️', maxHp: 170, currentHp: 170, weakness: 'MUST DEFEND! Press DEFEND [L]!', recommended: 'defend', intent: 'Official trademark coexistence grant', senderTrust: '100% Legal counsel', threatRating: 'SAFE & VALUABLE', aiRec: 'DEFEND [L] to preserve in Legal Records!' },
+      { id: 'b5', levelIndex: 5, category: 'spam', subject: '💥 INBOX OVERFLOW: 5,000 UNREAD EMAILS ARE ABOUT TO CRASH YOUR SERVER!', sender: 'Digital Void Overlord', senderEmail: 'overflow@inbox-oblivion.system', date: 'NOW', snippet: 'THE FINAL BOSS HAS AWAKENED! 5,000 unread emails are flooding your system.', fullBody: '5,000 unread emails detected! Only a full SPECIAL HADOKEN COMBO can overcome this!', monsterName: 'OVERFLOW MEGABYTE OVERLORD', monsterTitle: 'INBOX ZERO FINAL BOSS', avatar: '👑', maxHp: 300, currentHp: 300, weakness: 'Weak to SPECIAL ATTACK [U] & COMBOS!', recommended: 'special', intent: 'Final Boss battle to claim complete Inbox Zero', senderTrust: '0% Chaos', threatRating: 'MAXIMUM OVERFLOW', aiRec: 'UNLEASH SPECIAL ATTACK [U] THEN HEAVY PUNCH [J]!' }
+    ];
+
+    const INITIAL_PLAYER = {
+      name: 'CYBER BRAWLER',
+      title: 'INBOX SLAYER',
+      level: 14,
+      xp: 7450,
+      maxXp: 10000,
+      hp: 100,
+      maxHp: 100,
+      energy: 100,
+      streak: 0,
+      score: 18450,
+      emailsDefeated: 24,
+      emailsArchived: 16,
+      emailsProtected: 4,
+      emailsLabeled: 8,
+    };
+
+    // ==========================================
+    // MAIN APP COMPONENT
+    // ==========================================
+    function App() {
+      const [view, setView] = useState('home'); // 'home' | 'arena'
+      const [player, setPlayer] = useState(INITIAL_PLAYER);
+      const [isCrtOn, setIsCrtOn] = useState(false);
+      const [isMuted, setIsMuted] = useState(false);
+      const [isGmailModalOpen, setIsGmailModalOpen] = useState(false);
+
+      // Arena States
+      const [currentLvl, setCurrentLvl] = useState(1);
+      const [monsters, setMonsters] = useState(() => JSON.parse(JSON.stringify(ALL_EMAIL_MONSTERS)));
+      const [monsterIdx, setMonsterIdx] = useState(0);
+      const [roundTimer, setRoundTimer] = useState(60);
+      const [combo, setCombo] = useState(0);
+
+      // Battle effects
+      const [playerAction, setPlayerAction] = useState('idle');
+      const [monsterHit, setMonsterHit] = useState(false);
+      const [screenShake, setScreenShake] = useState(false);
+      const [damagePopup, setDamagePopup] = useState(null);
+      const [announcement, setAnnouncement] = useState(null);
+
+      // Modals in Arena
+      const [showAiModal, setShowAiModal] = useState(false);
+      const [aiLoading, setAiLoading] = useState(false);
+      const [aiAnalysis, setAiAnalysis] = useState(null);
+      const [showSpecialModal, setShowSpecialModal] = useState(false);
+      const [showStageClear, setShowStageClear] = useState(false);
+      const [showFullEmail, setShowFullEmail] = useState(false);
+
+      // Filter current level monsters
+      const lvlMonsters = useMemo(() => {
+        return monsters.filter(m => m.levelIndex === currentLvl);
+      }, [monsters, currentLvl]);
+
+      const currMonster = lvlMonsters[monsterIdx];
+      const isLvlDone = monsterIdx >= lvlMonsters.length;
+      const isGameFinished = currentLvl === 5 && isLvlDone;
+      const lvlConfig = LEVEL_CONFIGS.find(l => l.id === currentLvl) || LEVEL_CONFIGS[0];
+      const nextLvlConfig = LEVEL_CONFIGS.find(l => l.id === currentLvl + 1) || null;
+
+      // Timer countdown
+      useEffect(() => {
+        if (view !== 'arena' || isLvlDone || showStageClear) return;
+        const t = setInterval(() => setRoundTimer(prev => Math.max(0, prev - 1)), 1000);
+        return () => clearInterval(t);
+      }, [view, isLvlDone, showStageClear]);
+
+      // Popups
+      const triggerDamage = (text, color) => {
+        setDamagePopup({ text, color, id: Date.now() });
+        setTimeout(() => setDamagePopup(null), 850);
+      };
+
+      const triggerAnnounce = (text, subtext, color) => {
+        setAnnouncement({ text, subtext, color });
+        setTimeout(() => setAnnouncement(null), 1200);
+      };
+
+      const triggerShake = () => {
+        setScreenShake(true);
+        setTimeout(() => setScreenShake(false), 300);
+      };
+
+      // Sound toggle
+      const toggleSound = () => {
+        sound.isMuted = !isMuted;
+        setIsMuted(!isMuted);
+        if (isMuted) sound.playBeep();
+      };
+
+      // Advance to next monster
+      const advanceMonster = () => {
+        if (monsterIdx + 1 < lvlMonsters.length) {
+          setMonsterIdx(prev => prev + 1);
+          setRoundTimer(60);
+        } else {
+          sound.playStageClear();
+          setShowStageClear(true);
+        }
+      };
+
+      // 1. HEAVY PUNCH [J]
+      const handlePunch = () => {
+        if (!currMonster) return;
+        sound.playHeavyPunch();
+        setPlayerAction('punch');
+        triggerShake();
+        setMonsterHit(true);
+        setTimeout(() => setMonsterHit(false), 250);
+        setTimeout(() => setPlayerAction('idle'), 400);
+
+        const isImp = currMonster.category === 'important';
+        const nextCombo = combo + 1;
+        setCombo(nextCombo);
+
+        triggerDamage('-100 HEAVY PUNCH!', '#ff2a55');
+
+        if (isImp) {
+          triggerAnnounce('EMAIL ARCHIVED', '⚠️ Warning: Important email was archived!', '#ffe600');
+        } else {
+          sound.playKO();
+          triggerAnnounce('EMAIL DEFEATED!', `COMBO x${nextCombo}! +500 PTS`, '#ff2a55');
+        }
+
+        setPlayer(prev => ({
+          ...prev,
+          score: prev.score + 500 + nextCombo * 50,
+          streak: Math.max(prev.streak, nextCombo),
+          emailsDefeated: prev.emailsDefeated + 1,
+          emailsArchived: prev.emailsArchived + 1,
+          xp: prev.xp + 250,
+        }));
+
+        setTimeout(() => advanceMonster(), 1100);
+      };
+
+      // 2. QUICK ATTACK [K]
+      const handleQuick = () => {
+        if (!currMonster) return;
+        sound.playQuickSlash();
+        setPlayerAction('slash');
+        triggerShake();
+        setMonsterHit(true);
+        setTimeout(() => setMonsterHit(false), 250);
+        setTimeout(() => setPlayerAction('idle'), 400);
+
+        const nextCombo = combo + 1;
+        setCombo(nextCombo);
+        sound.playKO();
+
+        const cat = `[${currMonster.category.toUpperCase()}]`;
+        triggerDamage(`TAGGED ${cat}!`, '#00f0ff');
+        triggerAnnounce('LABEL APPLIED!', `Categorized as ${cat} • COMBO x${nextCombo}!`, '#00f0ff');
+
+        setPlayer(prev => ({
+          ...prev,
+          score: prev.score + 350 + nextCombo * 40,
+          streak: Math.max(prev.streak, nextCombo),
+          emailsDefeated: prev.emailsDefeated + 1,
+          emailsLabeled: prev.emailsLabeled + 1,
+          xp: prev.xp + 200,
+        }));
+
+        setTimeout(() => advanceMonster(), 1100);
+      };
+
+      // 3. DEFEND [L]
+      const handleDefend = () => {
+        if (!currMonster) return;
+        sound.playShield();
+        setPlayerAction('shield');
+        setTimeout(() => setPlayerAction('idle'), 450);
+
+        const isImp = currMonster.category === 'important';
+        if (isImp) {
+          sound.playProtectFanfare();
+          const nextCombo = combo + 1;
+          setCombo(nextCombo);
+          triggerDamage('PROTECTED! +1,000 XP!', '#ffe600');
+          triggerAnnounce('IMPORTANT EMAIL PROTECTED!', 'Secured safely in VIP Vault!', '#ffe600');
+
+          setPlayer(prev => ({
+            ...prev,
+            score: prev.score + 1000 + nextCombo * 100,
+            streak: Math.max(prev.streak, nextCombo),
+            emailsProtected: prev.emailsProtected + 1,
+            emailsDefeated: prev.emailsDefeated + 1,
+            xp: prev.xp + 1000,
+          }));
+
+          setTimeout(() => advanceMonster(), 1200);
+        } else {
+          triggerDamage('PARRIED!', '#ffe600');
+          triggerAnnounce('PARRY ACTIVATED', 'Snoozed until tomorrow morning!', '#ffe600');
+          setTimeout(() => advanceMonster(), 900);
+        }
+      };
+
+      // 4. AI POWER [Space]
+      const handleAi = async () => {
+        if (!currMonster) return;
+        sound.playSpecialBeam();
+        setShowAiModal(true);
+        setAiLoading(true);
+        setAiAnalysis(null);
+
+        try {
+          const res = await fetch('/api/analyze-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              subject: currMonster.subject,
+              sender: currMonster.sender,
+              senderEmail: currMonster.senderEmail,
+              date: currMonster.date,
+              snippet: currMonster.snippet,
+              fullBody: currMonster.fullBody
+            })
+          });
+          if (!res.ok) throw new Error('Backend HTTP error');
+          const data = await res.json();
+          setAiAnalysis(data);
+        } catch (e) {
+          // Fallback heuristic
+          const text = (currMonster.subject + ' ' + currMonster.fullBody).toLowerCase();
+          const isSpam = ['wire transfer', 'seed phrase', 'apple gift card', 'bitcoin', 'customs fee', 'unauthorized'].some(s => text.includes(s));
+          const isImp = ['offer', 'contract', 'docusign', 'lease', 'tax', 'irs', 'deadline', 'flight', 'cve', 'internship', 'interview'].some(s => text.includes(s));
+          const isPromo = ['off', 'discount', 'coupon', 'sale', 'promo', 'drop'].some(s => text.includes(s));
+          setAiAnalysis({
+            category: isSpam ? 'Spam-like' : isImp ? 'Important' : isPromo ? 'Promotional' : 'General',
+            priority: isImp ? 'High' : isSpam ? 'High' : 'Low',
+            summary: currMonster.intent || currMonster.snippet,
+            recommendedAction: isImp ? 'Keep' : isSpam ? 'Archive' : isPromo ? 'Archive' : 'Label',
+            reason: isImp ? 'High-impact communication requiring player attention and preservation.' : isSpam ? 'High-risk unsolicited message exhibiting phishing or fraud indicators.' : 'Standard communication appropriate for archiving or tagging.',
+            confidenceScore: 92,
+            requiresReply: isImp,
+            suggestedReply: 'Thank you! Reviewed and acknowledged.',
+            source: 'fallback',
+            note: 'Offline Heuristic Radar. Set GEMINI_API_KEY in .env to enable Gemini 1.5 Flash.'
+          });
+        } finally {
+          setAiLoading(false);
+        }
+      };
+
+      const acceptAiRecommendation = (recAction, recCat) => {
+        setShowAiModal(false);
+        // Dynamic Enemy Morphing: update monster category if AI found a new classification
+        if (recCat && currMonster) {
+          const normalized = recCat.toLowerCase().includes('spam') ? 'spam' :
+                             recCat.toLowerCase().includes('important') ? 'important' :
+                             recCat.toLowerCase().includes('promo') ? 'promotions' :
+                             recCat.toLowerCase().includes('social') ? 'social' : 'general';
+          setMonsters(prev => {
+            const u = [...prev];
+            const match = u.find(m => m.id === currMonster.id);
+            if (match) match.category = normalized;
+            return u;
+          });
+          triggerDamage(`MORPHED TO ${normalized.toUpperCase()}!`, '#b026ff');
+        }
+
+        const act = (recAction || '').toLowerCase();
+        if (act === 'keep') handleDefend();
+        else if (act === 'archive') handlePunch();
+        else if (act === 'label') handleQuick();
+        else {
+          if (currMonster.category === 'important') handleDefend();
+          else handleQuick();
+        }
+      };
+
+      // 5. SPECIAL ATTACK [U]
+      const batchEmails = useMemo(() => {
+        if (!currMonster) return [];
+        const matches = lvlMonsters.slice(monsterIdx, monsterIdx + 3);
+        return matches.length > 0 ? matches : [currMonster];
+      }, [lvlMonsters, monsterIdx, currMonster]);
+
+      const handleSpecial = () => {
+        sound.playSpecialBeam();
+        setShowSpecialModal(true);
+      };
+
+      const executeSpecialSweep = () => {
+        setShowSpecialModal(false);
+        sound.playSpecialBeam();
+        setPlayerAction('special');
+        triggerShake();
+
+        const count = batchEmails.length;
+        triggerAnnounce('HADOKEN SWEEP!', `MULTI-KILL x${count}! +${count * 500} PTS!`, '#00ff66');
+        triggerDamage(`HADOKEN x${count}!`, '#00ff66');
+
+        setTimeout(() => {
+          sound.playKO();
+          setPlayerAction('idle');
+          setPlayer(prev => ({
+            ...prev,
+            score: prev.score + count * 500,
+            streak: prev.streak + count,
+            emailsDefeated: prev.emailsDefeated + count,
+            emailsArchived: prev.emailsArchived + count,
+            xp: prev.xp + count * 300,
+          }));
+
+          const nextIdx = monsterIdx + count;
+          if (nextIdx < lvlMonsters.length) {
+            setMonsterIdx(nextIdx);
+            setRoundTimer(60);
+          } else {
+            sound.playStageClear();
+            setShowStageClear(true);
+          }
+        }, 600);
+      };
+
+      // Hotkeys
+      useEffect(() => {
+        const handleKeys = (e) => {
+          if (view !== 'arena' || showAiModal || showSpecialModal || showStageClear || showFullEmail || isLvlDone) return;
+          const k = e.key.toLowerCase();
+          if (k === 'j') handlePunch();
+          else if (k === 'k') handleQuick();
+          else if (k === 'l') handleDefend();
+          else if (k === ' ' || k === 's') { e.preventDefault(); handleAi(); }
+          else if (k === 'u' || k === 'e') handleSpecial();
+        };
+        window.addEventListener('keydown', handleKeys);
+        return () => window.removeEventListener('keydown', handleKeys);
+      }, [view, monsterIdx, showAiModal, showSpecialModal, showStageClear, showFullEmail, isLvlDone, currMonster, combo]);
+
+      // Category Appearance
+      const getCategoryTheme = (cat) => {
+        if (cat === 'spam') return { border: 'border-cyber-red shadow-[0_0_20px_rgba(255,42,85,0.4)]', bg: 'bg-red-950/80 text-cyber-red', col: 'text-cyber-red', bar: 'from-cyber-pink to-cyber-red' };
+        if (cat === 'promotions') return { border: 'border-cyber-purple shadow-[0_0_20px_rgba(176,38,255,0.4)]', bg: 'bg-purple-950/80 text-cyber-purple', col: 'text-cyber-purple', bar: 'from-cyber-blue to-cyber-purple' };
+        if (cat === 'social') return { border: 'border-cyber-blue shadow-[0_0_20px_rgba(0,240,255,0.4)]', bg: 'bg-cyan-950/80 text-cyber-blue', col: 'text-cyber-blue', bar: 'from-cyan-400 to-cyber-blue' };
+        if (cat === 'important') return { border: 'border-cyber-yellow shadow-[0_0_25px_rgba(255,230,0,0.45)]', bg: 'bg-amber-950/80 text-cyber-yellow', col: 'text-cyber-yellow', bar: 'from-amber-400 to-cyber-yellow' };
+        return { border: 'border-cyber-green shadow-[0_0_20px_rgba(0,255,102,0.4)]', bg: 'bg-emerald-950/80 text-cyber-green', col: 'text-cyber-green', bar: 'from-emerald-400 to-cyber-green' };
+      };
+
+      const theme = currMonster ? getCategoryTheme(currMonster.category) : null;
+
+      return (
+        <div className={`min-h-screen cyber-bg text-slate-100 ${isCrtOn ? 'crt' : ''} ${screenShake ? 'translate-x-1 translate-y-1' : ''}`}>
+          
+          {/* Top Navbar */}
+          <nav className="sticky top-0 z-50 w-full border-b border-slate-800 bg-[#070a13]/90 backdrop-blur-md px-4 py-3 sm:px-8">
+            <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+              <button onClick={() => { sound.playBeep(); setView('home'); }} className="flex items-center gap-3 text-left">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyber-purple via-cyber-pink to-cyber-blue p-[2px] shadow-neon-pink flex items-center justify-center font-arcade text-cyber-blue text-sm">
+                  🥊
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5 font-arcade text-xs sm:text-sm text-white">
+                    INBOX<span className="text-cyber-pink">STREET</span><span className="text-cyber-blue">FIGHTER</span>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] bg-cyber-purple/30 text-cyber-purple border border-cyber-purple/50">v1.0</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-mono tracking-widest uppercase hidden sm:block">AI-Powered Email Combat System</p>
+                </div>
+              </button>
+
+              <div className="flex items-center gap-2 sm:gap-4">
+                <button onClick={toggleSound} className={`p-2 rounded-lg border text-xs font-mono ${isMuted ? 'border-slate-800 bg-slate-900 text-slate-500' : 'border-cyber-blue bg-cyber-blue/10 text-cyber-blue shadow-neon-blue'}`}>
+                  {isMuted ? '🔇 MUTE' : '🔊 SFX'}
+                </button>
+                <button onClick={() => { sound.playBeep(); setIsCrtOn(!isCrtOn); }} className={`p-2 rounded-lg border text-xs font-arcade hidden sm:block ${isCrtOn ? 'border-cyber-pink bg-cyber-pink/20 text-cyber-pink' : 'border-slate-800 bg-slate-900 text-slate-500'}`}>
+                  CRT
+                </button>
+                <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-900 rounded-lg border border-slate-800 font-mono text-xs">
+                  <span className="text-cyber-blue font-arcade">LVL {player.level}</span>
+                  <span className="text-slate-400">{player.score} PTS</span>
+                </div>
+                {view === 'home' ? (
+                  <button onClick={() => { sound.playCoin(); setView('arena'); }} className="px-4 py-2 rounded-lg font-arcade text-xs text-black bg-gradient-to-r from-cyber-blue via-cyber-purple to-cyber-pink hover:opacity-90 shadow-neon-blue active:scale-95 transition-all">
+                    FIGHT NOW
+                  </button>
+                ) : (
+                  <button onClick={() => { sound.playBeep(); setView('home'); }} className="px-3 py-1.5 rounded-lg font-arcade text-xs text-cyber-blue border border-cyber-blue hover:bg-cyber-blue/10">
+                    HUB
+                  </button>
+                )}
+              </div>
+            </div>
+          </nav>
+
+          {/* VIEW ROUTER */}
+          {view === 'home' ? (
+            /* HOMEPAGE VIEW */
+            <main>
+              {/* HERO */}
+              <section className="relative pt-8 pb-16 px-4 sm:px-8 max-w-7xl mx-auto">
+                <div className="text-center max-w-3xl mx-auto mb-10">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyber-purple/20 border border-cyber-purple/40 text-cyber-purple text-xs font-mono mb-4 uppercase">
+                    ✨ 5 Themed Levels • 25 Email Monsters • Real Combat Engine
+                  </div>
+                  <h1 className="font-arcade text-2xl sm:text-4xl md:text-5xl lg:text-6xl text-white uppercase tracking-tight leading-tight mb-4">
+                    YOUR INBOX IS THE <br />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyber-blue via-cyber-pink to-cyber-yellow neon-text-pink">
+                      BATTLEFIELD.
+                    </span>
+                  </h1>
+                  <p className="text-slate-300 text-sm sm:text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
+                    Fight through 5 arcade zones from the Spam Arena to the Final Inbox Boss. Heavy punch phishing, label notifications, and defend crucial contracts to reach <strong className="text-cyber-green">INBOX ZERO</strong>.
+                  </p>
+
+                  <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mt-8">
+                    <button onClick={() => { sound.playCoin(); setView('arena'); }} className="px-8 py-4 rounded-xl font-arcade text-xs sm:text-sm text-black bg-gradient-to-r from-cyber-blue via-cyber-purple to-cyber-pink hover:opacity-95 shadow-neon-blue active:scale-95 transition-all">
+                      ▶ START GAME
+                    </button>
+                    <button onClick={() => { sound.playCoin(); setView('arena'); }} className="px-7 py-4 rounded-xl font-arcade text-xs sm:text-sm text-cyber-blue border-2 border-cyber-blue hover:bg-cyber-blue/10 shadow-neon-blue active:scale-95 transition-all">
+                      ⚔️ PLAY DEMO
+                    </button>
+                    <button onClick={() => { sound.playBeep(); setIsGmailModalOpen(true); }} className="px-6 py-4 rounded-xl font-mono text-xs sm:text-sm text-slate-300 border border-slate-700 hover:border-cyber-pink hover:text-cyber-pink transition-all flex items-center gap-2">
+                      ✉️ CONNECT GMAIL <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyber-pink/20 text-cyber-pink">SOON</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 5 LEVEL CAMPAIGN SELECTOR */}
+                <div className="mb-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                  {LEVEL_CONFIGS.map(lvl => (
+                    <div 
+                      key={lvl.id}
+                      onClick={() => { sound.playCoin(); setCurrentLvl(lvl.id); setMonsterIdx(0); setView('arena'); }}
+                      className="rounded-2xl bg-[#0c1222]/90 border border-slate-800 p-4 hover:border-cyber-blue cursor-pointer transition-all hover:-translate-y-1 group"
+                    >
+                      <div className="text-2xl mb-2">{lvl.icon}</div>
+                      <div className="font-arcade text-[10px] text-cyber-blue">LEVEL {lvl.id}</div>
+                      <h4 className="font-arcade text-xs text-white group-hover:text-cyber-blue mt-1">{lvl.name}</h4>
+                      <p className="text-[11px] text-slate-400 mt-1">{lvl.subtitle}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* HOW TO PLAY 5 BUTTONS */}
+              <section className="py-12 px-4 sm:px-8 max-w-7xl mx-auto">
+                <div className="text-center max-w-2xl mx-auto mb-8">
+                  <div className="text-cyber-pink font-mono text-xs uppercase mb-1">ARCADE COMBAT MANUAL</div>
+                  <h2 className="font-arcade text-xl sm:text-2xl text-white uppercase">THE 5 COMBAT BUTTONS</h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                  <div className="rounded-2xl bg-[#0c1222] border border-cyber-red/50 p-5">
+                    <span className="w-8 h-8 rounded-lg flex items-center justify-center font-arcade text-xs font-black text-black bg-cyber-red mb-3">J</span>
+                    <h4 className="font-arcade text-xs text-white">HEAVY PUNCH</h4>
+                    <p className="text-xs text-slate-400 mt-2">Defeats spam & general emails. Simulates immediate archiving.</p>
+                  </div>
+                  <div className="rounded-2xl bg-[#0c1222] border border-cyber-blue/50 p-5">
+                    <span className="w-8 h-8 rounded-lg flex items-center justify-center font-arcade text-xs font-black text-black bg-cyber-blue mb-3">K</span>
+                    <h4 className="font-arcade text-xs text-white">QUICK ATTACK</h4>
+                    <p className="text-xs text-slate-400 mt-2">Applies suitable category label [PROMO], [SOCIAL], [DEV] for bonus points.</p>
+                  </div>
+                  <div className="rounded-2xl bg-[#0c1222] border border-cyber-yellow/50 p-5">
+                    <span className="w-8 h-8 rounded-lg flex items-center justify-center font-arcade text-xs font-black text-black bg-cyber-yellow mb-3">L</span>
+                    <h4 className="font-arcade text-xs text-white">DEFEND</h4>
+                    <p className="text-xs text-slate-400 mt-2">Protects important emails (Job offers, leases, taxes) for a massive +1,000 XP!</p>
+                  </div>
+                  <div className="rounded-2xl bg-[#0c1222] border border-cyber-purple/50 p-5">
+                    <span className="w-8 h-8 rounded-lg flex items-center justify-center font-arcade text-xs font-black text-white bg-cyber-purple mb-3">SPC</span>
+                    <h4 className="font-arcade text-xs text-white">AI POWER</h4>
+                    <p className="text-xs text-slate-400 mt-2">Analyzes intent, sender credibility & recommends optimal fighting move.</p>
+                  </div>
+                  <div className="rounded-2xl bg-[#0c1222] border border-cyber-green/50 p-5">
+                    <span className="w-8 h-8 rounded-lg flex items-center justify-center font-arcade text-xs font-black text-black bg-cyber-green mb-3">U</span>
+                    <h4 className="font-arcade text-xs text-white">SPECIAL ATTACK</h4>
+                    <p className="text-xs text-slate-400 mt-2">Previews multiple similar emails and sweeps them all with a Hadoken blast!</p>
+                  </div>
+                </div>
+              </section>
+
+              {/* FOOTER */}
+              <footer className="w-full border-t border-slate-800 bg-[#070a13] py-8 px-4 sm:px-8 mt-12 font-mono text-xs text-center">
+                <span className="text-cyber-green">FLAWLESS INBOX ZERO • 25 MONSTER COMBAT DECK • 2026</span>
+              </footer>
+            </main>
+          ) : (
+            /* FULL-SCREEN ARCADE BATTLE ARENA */
+            <div className="min-h-screen py-4 px-3 sm:px-6 max-w-7xl mx-auto flex flex-col justify-between">
+              <div>
+                {/* Arena Top Status */}
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3 mb-4">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => { sound.playBeep(); setView('home'); }} className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 font-mono text-xs hover:border-cyber-blue">
+                      ← HUB
+                    </button>
+                    <div className="hidden sm:flex items-center gap-1 font-arcade text-[9px]">
+                      {LEVEL_CONFIGS.map(lvl => (
+                        <button
+                          key={lvl.id}
+                          onClick={() => { sound.playCoin(); setCurrentLvl(lvl.id); setMonsterIdx(0); setRoundTimer(60); }}
+                          className={`px-2 py-1 rounded border ${lvl.id === currentLvl ? 'bg-cyber-purple/30 border-cyber-purple text-white shadow-neon-purple' : 'bg-slate-900 border-slate-800 text-slate-500'}`}
+                        >
+                          LVL {lvl.id}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-center">
+                    <span className="text-base">{lvlConfig.icon}</span>
+                    <div>
+                      <span className="font-arcade text-xs text-white block">LEVEL {currentLvl}: {lvlConfig.name}</span>
+                      <span className="text-[10px] font-mono text-slate-400">Enemy {Math.min(monsterIdx + 1, lvlMonsters.length)} / {lvlMonsters.length}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 font-mono text-xs">
+                    <span className="px-2.5 py-1 rounded bg-slate-900 border border-slate-800 font-arcade text-cyber-yellow text-[11px]">{roundTimer}s</span>
+                    {combo > 1 && (
+                      <span className="px-2.5 py-1 rounded bg-cyber-pink/20 border border-cyber-pink font-arcade text-[10px] text-cyber-pink">
+                        🔥 x{combo}!
+                      </span>
+                    )}
+                    <span className="font-arcade text-xs text-white">SCORE: <strong className="text-cyber-blue">{player.score}</strong></span>
+                  </div>
+                </div>
+
+                {/* Demo Mode Notice */}
+                <div className="px-3 py-1 rounded-lg bg-[#0c1222]/80 border border-slate-800 flex items-center justify-between text-[11px] font-mono text-slate-400 mb-4">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-cyber-green animate-pulse"></span>
+                    SIMULATED DEMO ARENA — No real Gmail emails are modified.
+                  </span>
+                  <span className="text-cyber-purple hidden md:inline">25 Realistic Email Monsters Active</span>
+                </div>
+
+                {/* Street Fighter Style VS Health Bars */}
+                {!isLvlDone && currMonster && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    {/* Player Health */}
+                    <div className="bg-slate-900/95 border border-cyber-blue/60 rounded-xl p-3 shadow-neon-blue">
+                      <div className="flex justify-between items-center mb-1 text-xs font-mono">
+                        <span className="font-arcade text-xs text-cyber-blue">{player.name} (LVL {player.level})</span>
+                        <span className="font-arcade text-[10px] text-slate-300">{player.hp} / {player.maxHp} HP</span>
+                      </div>
+                      <div className="w-full h-3.5 bg-slate-800 rounded-full overflow-hidden p-0.5">
+                        <div className="h-full bg-gradient-to-r from-cyber-blue to-cyber-green rounded-full shadow-[0_0_8px_#00f0ff]" style={{ width: `${player.hp}%` }} />
+                      </div>
+                      <div className="flex justify-between mt-1 text-[10px] font-mono text-slate-400">
+                        <span>EXP: {player.xp} / {player.maxXp}</span>
+                        <span className="text-cyber-green font-arcade text-[8px]">PROTECTED: {player.emailsProtected}</span>
+                      </div>
+                    </div>
+
+                    {/* Monster Health */}
+                    <div className={`bg-slate-900/95 border rounded-xl p-3 ${theme?.border}`}>
+                      <div className="flex justify-between items-center mb-1 text-xs font-mono">
+                        <span className={`font-arcade text-xs ${theme?.col}`}>{currMonster.monsterName}</span>
+                        <span className="font-arcade text-[10px] text-slate-300">{currMonster.currentHp} / {currMonster.maxHp} HP</span>
+                      </div>
+                      <div className="w-full h-3.5 bg-slate-800 rounded-full overflow-hidden p-0.5">
+                        <div className={`h-full bg-gradient-to-r ${theme?.bar} rounded-full transition-all duration-300`} style={{ width: `${Math.round((currMonster.currentHp / currMonster.maxHp) * 100)}%` }} />
+                      </div>
+                      <div className="flex justify-between mt-1 text-[10px] font-mono text-slate-400">
+                        <span className="uppercase">Threat: {currMonster.threatLevel} ({currMonster.priority})</span>
+                        <span className={`font-arcade text-[8px] uppercase ${theme?.col}`}>{currMonster.category}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* FIGHT ARENA CENTER STAGE */}
+              {!isLvlDone && currMonster ? (
+                <div className={`relative my-2 rounded-2xl bg-gradient-to-b ${lvlConfig.bgGradient} border-2 border-slate-800 p-4 sm:p-8 shadow-2xl backdrop-blur-xl flex-1 flex flex-col justify-center`}>
+                  {announcement && (
+                    <div className="absolute inset-0 z-40 bg-black/85 flex flex-col items-center justify-center p-6 text-center">
+                      <div className="font-arcade text-3xl sm:text-5xl font-black uppercase" style={{ color: announcement.color }}>
+                        {announcement.text}
+                      </div>
+                      <p className="font-mono text-xs sm:text-sm text-slate-300 mt-2">{announcement.subtext}</p>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-11 gap-6 items-center my-auto">
+                    {/* Left: Player Character */}
+                    <div className="md:col-span-5 flex flex-col items-center justify-center py-4">
+                      <div className={`relative w-36 h-36 rounded-3xl bg-cyber-blue/15 border-2 border-cyber-blue flex items-center justify-center text-7xl shadow-neon-blue transition-all ${
+                        playerAction === 'punch' ? 'translate-x-12 scale-125' : playerAction === 'slash' ? 'translate-x-10 -rotate-12 scale-110' : playerAction === 'shield' ? 'scale-110 border-cyber-yellow' : ''
+                      }`}>
+                        🥋
+                        {playerAction === 'shield' && (
+                          <div className="absolute -inset-4 rounded-full border-4 border-cyber-yellow bg-cyber-yellow/20 pointer-events-none" />
+                        )}
+                      </div>
+                      <span className="font-arcade text-xs text-white mt-3">PLAYER 1 (YOU)</span>
+                      <p className="text-[11px] font-mono text-cyber-blue">Active: {playerAction.toUpperCase()}</p>
+                    </div>
+
+                    {/* Center: VS & Popups */}
+                    <div className="md:col-span-1 flex flex-col items-center justify-center relative">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyber-pink to-cyber-purple border-2 border-white flex items-center justify-center font-arcade text-xs text-white shadow-neon-pink">
+                        VS
+                      </div>
+                      {damagePopup && (
+                        <div className="absolute -top-10 font-arcade text-sm font-black whitespace-nowrap damage-pop" style={{ color: damagePopup.color }}>
+                          {damagePopup.text}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right: Email Monster Enemy */}
+                    <div className={`md:col-span-5 bg-slate-900/95 border-2 rounded-2xl p-5 transition-all ${
+                      monsterHit ? 'border-cyber-red bg-red-950/40 translate-x-3' : theme?.border
+                    }`}>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className={`px-2 py-0.5 rounded font-arcade text-[9px] uppercase border ${theme?.bg}`}>
+                          {currMonster.monsterTitle}
+                        </span>
+                        <span className="text-xs font-mono text-slate-400">{currMonster.date}</span>
+                      </div>
+
+                      <div className="flex items-start gap-3.5 mb-3">
+                        <div className={`w-16 h-16 rounded-2xl border-2 flex items-center justify-center text-4xl shrink-0 ${theme?.border}`}>
+                          {currMonster.avatar}
+                        </div>
+                        <div className="overflow-hidden">
+                          <h4 className="font-semibold text-white text-sm sm:text-base leading-snug line-clamp-2">{currMonster.subject}</h4>
+                          <p className="text-xs text-cyber-blue font-mono mt-1 truncate">From: {currMonster.sender} ({currMonster.senderEmail})</p>
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-950/80 rounded-xl p-3 border border-slate-800 text-xs text-slate-300 font-sans leading-relaxed mb-3">
+                        "{currMonster.snippet}"
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs font-mono">
+                        <span className="text-cyber-yellow text-[11px] truncate pr-2">⚡ {currMonster.weakness}</span>
+                        <button onClick={() => setShowFullEmail(true)} className="text-cyber-blue underline text-[11px] shrink-0">
+                          Inspect Email
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* FINAL ALL CLEARED VICTORY */
+                <div className="my-8 rounded-2xl bg-[#0c1222] border-2 border-cyber-green p-8 sm:p-12 text-center shadow-[0_0_40px_rgba(0,255,102,0.4)]">
+                  <div className="text-6xl mb-4">👑</div>
+                  <h2 className="font-arcade text-2xl sm:text-4xl text-transparent bg-clip-text bg-gradient-to-r from-cyber-green via-cyber-blue to-cyber-yellow neon-text-blue font-black uppercase mb-3">
+                    FLAWLESS INBOX ZERO MASTER!
+                  </h2>
+                  <p className="text-slate-300 text-sm max-w-xl mx-auto mb-6">
+                    You conquered all 5 Levels and 25 Email Monsters, including the legendary Overflow Megabyte Overlord!
+                  </p>
+                  <div className="flex flex-wrap items-center justify-center gap-4">
+                    <button onClick={() => { sound.playCoin(); setCurrentLvl(1); setMonsterIdx(0); setMonsters(JSON.parse(JSON.stringify(ALL_EMAIL_MONSTERS))); }} className="px-6 py-3.5 rounded-xl font-arcade text-xs text-black bg-gradient-to-r from-cyber-green to-cyber-blue shadow-neon-blue">
+                      REPLAY CAMPAIGN
+                    </button>
+                    <button onClick={() => { sound.playBeep(); setView('home'); }} className="px-6 py-3.5 rounded-xl font-arcade text-xs text-cyber-blue border border-cyber-blue hover:bg-cyber-blue/10">
+                      RETURN TO HUB
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* FIVE INTERACTIVE FIGHTING BUTTONS */}
+              {!isLvlDone && (
+                <div className="mt-3 pt-3 border-t border-slate-800">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                    
+                    {/* 1. HEAVY PUNCH [J] */}
+                    <button onClick={handlePunch} className="p-3 rounded-xl border border-slate-800 bg-[#0c1222] hover:border-cyber-red transition-all active:scale-95 text-left flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="w-6 h-6 rounded flex items-center justify-center font-arcade text-[10px] font-black text-black bg-cyber-red">J</span>
+                        <span className="text-[10px] font-mono text-slate-400">100 DMG</span>
+                      </div>
+                      <div className="font-arcade text-[10px] text-white">HEAVY PUNCH</div>
+                      <div className="text-[9px] font-mono text-slate-400 uppercase mt-0.5 truncate">Defeat & Archive</div>
+                    </button>
+
+                    {/* 2. QUICK ATTACK [K] */}
+                    <button onClick={handleQuick} className="p-3 rounded-xl border border-slate-800 bg-[#0c1222] hover:border-cyber-blue transition-all active:scale-95 text-left flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="w-6 h-6 rounded flex items-center justify-center font-arcade text-[10px] font-black text-black bg-cyber-blue">K</span>
+                        <span className="text-[10px] font-mono text-slate-400">55 DMG</span>
+                      </div>
+                      <div className="font-arcade text-[10px] text-white">QUICK ATTACK</div>
+                      <div className="text-[9px] font-mono text-slate-400 uppercase mt-0.5 truncate">Apply Category Label</div>
+                    </button>
+
+                    {/* 3. DEFEND [L] */}
+                    <button onClick={handleDefend} className="p-3 rounded-xl border border-slate-800 bg-[#0c1222] hover:border-cyber-yellow transition-all active:scale-95 text-left flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="w-6 h-6 rounded flex items-center justify-center font-arcade text-[10px] font-black text-black bg-cyber-yellow">L</span>
+                        <span className="text-[10px] font-mono text-cyber-yellow">+1000 XP</span>
+                      </div>
+                      <div className="font-arcade text-[10px] text-white">DEFEND</div>
+                      <div className="text-[9px] font-mono text-slate-400 uppercase mt-0.5 truncate">Protect Important</div>
+                    </button>
+
+                    {/* 4. AI POWER [Space] */}
+                    <button onClick={handleAi} className="p-3 rounded-xl border border-slate-800 bg-[#0c1222] hover:border-cyber-purple transition-all active:scale-95 text-left flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="w-7 h-6 rounded flex items-center justify-center font-arcade text-[9px] font-black text-white bg-cyber-purple">SPC</span>
+                        <span className="text-[10px] font-mono text-cyber-purple">RADAR</span>
+                      </div>
+                      <div className="font-arcade text-[10px] text-white">AI POWER</div>
+                      <div className="text-[9px] font-mono text-slate-400 uppercase mt-0.5 truncate">Analyze & Advise</div>
+                    </button>
+
+                    {/* 5. SPECIAL ATTACK [U] */}
+                    <button onClick={handleSpecial} className="p-3 rounded-xl border border-slate-800 bg-[#0c1222] hover:border-cyber-green transition-all active:scale-95 text-left flex flex-col justify-between">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="w-6 h-6 rounded flex items-center justify-center font-arcade text-[10px] font-black text-black bg-cyber-green">U</span>
+                        <span className="text-[10px] font-mono text-cyber-green">SWEEP</span>
+                      </div>
+                      <div className="font-arcade text-[10px] text-white">SPECIAL ATTACK</div>
+                      <div className="text-[9px] font-mono text-slate-400 uppercase mt-0.5 truncate">Batch Clean Preview</div>
+                    </button>
+
+                  </div>
+                </div>
+              )}
+
+              {/* AI POWER MODAL */}
+              {showAiModal && currMonster && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+                  <div className="relative w-full max-w-xl rounded-2xl bg-[#0c1222] border-2 border-cyber-purple p-6 sm:p-8 text-white shadow-neon-purple">
+                    <button onClick={() => setShowAiModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white">✕</button>
+                    
+                    {/* Header */}
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-11 h-11 rounded-xl bg-cyber-purple/20 border border-cyber-purple flex items-center justify-center text-cyber-purple text-2xl">
+                        🤖
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-arcade text-xs text-cyber-purple uppercase">TACTICAL GEMINI AI RADAR</span>
+                          {aiAnalysis && (
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-mono border ${
+                              aiAnalysis.source === 'gemini' 
+                                ? 'bg-cyber-green/20 text-cyber-green border-cyber-green/50 animate-pulse'
+                                : 'bg-slate-800 text-slate-300 border-slate-700'
+                            }`}>
+                              {aiAnalysis.source === 'gemini' ? '⚡ GEMINI 1.5 FLASH (LIVE)' : '🛡️ HEURISTIC RADAR'}
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="font-arcade text-sm sm:text-base text-white mt-0.5">SMART EMAIL UNDERSTANDING</h3>
+                      </div>
+                    </div>
+
+                    {/* Loading State */}
+                    {aiLoading ? (
+                      <div className="py-10 flex flex-col items-center justify-center text-center">
+                        <div className="w-14 h-14 rounded-full border-4 border-dashed border-cyber-purple animate-spin flex items-center justify-center mb-3">
+                          <span className="text-xl">✨</span>
+                        </div>
+                        <p className="font-arcade text-xs text-cyber-purple animate-pulse">GEMINI AI SCANNING EMAIL CONTEXT...</p>
+                        <p className="text-xs font-mono text-slate-400 mt-1">Evaluating intent, urgency & combat action</p>
+                      </div>
+                    ) : aiAnalysis ? (
+                      <div>
+                        {/* Target Summary */}
+                        <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs font-mono mb-3">
+                          <div className="text-slate-400 text-[10px] uppercase">TARGET: {currMonster.subject}</div>
+                          <div className="text-cyber-blue text-[11px] mt-0.5">From: {currMonster.sender} ({currMonster.senderEmail})</div>
+                        </div>
+
+                        {/* 4 Telemetry Metrics */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3 text-xs font-mono">
+                          <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                            <span className="text-slate-400 text-[9px] uppercase block">CATEGORY</span>
+                            <span className="font-arcade text-[10px] text-cyber-yellow">{aiAnalysis.category}</span>
+                          </div>
+                          <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                            <span className="text-slate-400 text-[9px] uppercase block">PRIORITY</span>
+                            <span className={`font-arcade text-[10px] ${aiAnalysis.priority === 'High' ? 'text-cyber-red' : aiAnalysis.priority === 'Medium' ? 'text-cyber-yellow' : 'text-slate-400'}`}>
+                              {aiAnalysis.priority}
+                            </span>
+                          </div>
+                          <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                            <span className="text-slate-400 text-[9px] uppercase block">CONFIDENCE</span>
+                            <span className="font-arcade text-[10px] text-cyber-green">{aiAnalysis.confidenceScore}%</span>
+                          </div>
+                          <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800">
+                            <span className="text-slate-400 text-[9px] uppercase block">REPLY NEEDED</span>
+                            <span className={`font-arcade text-[10px] ${aiAnalysis.requiresReply ? 'text-cyber-yellow' : 'text-slate-400'}`}>
+                              {aiAnalysis.requiresReply ? 'YES' : 'NO'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Tactical Summary */}
+                        <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-800 mb-3 text-xs">
+                          <span className="text-[10px] font-mono text-cyber-blue uppercase block mb-0.5">TACTICAL BRIEFING</span>
+                          <p className="text-slate-200 font-sans leading-relaxed">{aiAnalysis.summary}</p>
+                        </div>
+
+                        {/* Recommendation Box */}
+                        <div className="p-3.5 rounded-xl bg-purple-950/40 border border-cyber-purple/60 mb-5 text-xs">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-mono text-cyber-yellow uppercase">RECOMMENDED ACTION:</span>
+                            <span className="font-arcade text-[11px] text-white">{aiAnalysis.recommendedAction.toUpperCase()}</span>
+                          </div>
+                          <p className="text-slate-300 font-sans leading-relaxed">{aiAnalysis.reason}</p>
+                          {aiAnalysis.suggestedReply && (
+                            <div className="mt-2 pt-2 border-t border-white/10 text-[11px] text-cyber-green font-mono">
+                              Draft Reply: "{aiAnalysis.suggestedReply}"
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Action Buttons: Accept / Reject */}
+                        <div className="flex flex-col sm:flex-row gap-2.5">
+                          <button
+                            onClick={() => {
+                              sound.playSpecialBeam();
+                              acceptAiRecommendation(aiAnalysis.recommendedAction, aiAnalysis.category);
+                            }}
+                            className="flex-1 py-3 px-4 rounded-xl font-arcade text-xs text-black bg-gradient-to-r from-cyber-purple via-cyber-pink to-cyber-blue shadow-neon-purple active:scale-95 transition-all"
+                          >
+                            ACCEPT RECOMMENDATION (+250 XP)
+                          </button>
+                          <button
+                            onClick={() => setShowAiModal(false)}
+                            className="py-3 px-5 rounded-xl font-mono text-xs text-slate-400 bg-slate-900 border border-slate-800 hover:text-white"
+                          >
+                            Reject & Pick Manually
+                          </button>
+                        </div>
+
+                        {aiAnalysis.source === 'fallback' && (
+                          <p className="text-[10px] font-mono text-slate-500 text-center mt-2.5">
+                            Tip: Add your Gemini API key in <code className="text-slate-400">.env</code> to activate live Gemini 1.5 Flash analysis!
+                          </p>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+
+              {/* SPECIAL ATTACK BATCH MODAL */}
+              {showSpecialModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+                  <div className="relative w-full max-w-xl rounded-2xl bg-[#0c1222] border-2 border-cyber-green p-6 text-white shadow-[0_0_30px_rgba(0,255,102,0.3)]">
+                    <button onClick={() => setShowSpecialModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white">✕</button>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-xl bg-cyber-green/20 border border-cyber-green flex items-center justify-center text-cyber-green text-xl">💥</div>
+                      <div>
+                        <h3 className="font-arcade text-sm text-white">HADOKEN INBOX CLEANSE</h3>
+                        <p className="text-xs font-mono text-cyber-green">Multi-Email Batch Sweeper</p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-300 font-sans mb-4">
+                      AI Scan identified <strong>{batchEmails.length} matching emails</strong> ready for simultaneous annihilation!
+                    </p>
+                    <div className="space-y-2 mb-5 max-h-48 overflow-y-auto">
+                      {batchEmails.map((em, idx) => (
+                        <div key={idx} className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
+                          <div className="truncate pr-2">
+                            <span className="font-semibold text-white block truncate">{em.subject}</span>
+                            <span className="text-[10px] text-slate-400 font-mono">{em.sender}</span>
+                          </div>
+                          <span className="px-2 py-0.5 rounded text-[9px] font-mono bg-slate-900 text-cyber-green border border-cyber-green/30 uppercase">{em.category}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-3">
+                      <button onClick={executeSpecialSweep} className="flex-1 py-3 px-4 rounded-xl font-arcade text-xs text-black bg-gradient-to-r from-cyber-green via-cyber-blue to-cyber-yellow shadow-[0_0_20px_rgba(0,255,102,0.4)]">
+                        UNLEASH HADOKEN SWEEP ({batchEmails.length}x MULTI-KILL!)
+                      </button>
+                      <button onClick={() => setShowSpecialModal(false)} className="py-3 px-4 rounded-xl font-mono text-xs text-slate-400 bg-slate-900 border border-slate-800">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* STAGE CLEAR MODAL */}
+              {showStageClear && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-lg">
+                  <div className="relative w-full max-w-lg rounded-3xl bg-[#0c1222] border-2 border-cyber-green p-8 text-center text-white shadow-[0_0_40px_rgba(0,255,102,0.35)]">
+                    <div className="text-5xl mb-3">🏆</div>
+                    <div className="font-arcade text-xs text-cyber-green uppercase mb-1">STAGE CLEARED • LEVEL {currentLvl} PURGED!</div>
+                    <h2 className="font-arcade text-xl sm:text-2xl text-white uppercase mb-4">{lvlConfig.name} PURGED!</h2>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-950 p-4 rounded-2xl border border-slate-800 mb-6 font-mono text-xs">
+                      <div>
+                        <span className="text-slate-400 text-[10px]">SCORE</span>
+                        <p className="font-arcade text-sm text-white mt-1">{player.score}</p>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 text-[10px]">RANK</span>
+                        <p className="font-arcade text-sm text-cyber-yellow mt-1">RANK S</p>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 text-[10px]">COMBO</span>
+                        <p className="font-arcade text-sm text-cyber-pink mt-1">{player.streak}x</p>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 text-[10px]">EXP</span>
+                        <p className="font-arcade text-sm text-cyber-green mt-1">+1,250</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      {nextLvlConfig ? (
+                        <button onClick={() => { setShowStageClear(false); setCurrentLvl(nextLvlConfig.id); setMonsterIdx(0); setRoundTimer(60); }} className="flex-1 py-3 px-4 rounded-xl font-arcade text-xs text-black bg-gradient-to-r from-cyber-green via-cyber-blue to-cyber-yellow shadow-[0_0_20px_rgba(0,255,102,0.4)]">
+                          ENTER {nextLvlConfig.name} →
+                        </button>
+                      ) : null}
+                      <button onClick={() => { setShowStageClear(false); setView('home'); }} className="py-3 px-5 rounded-xl font-mono text-xs text-slate-300 bg-slate-900 border border-slate-800">
+                        Return to Hub
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* FULL EMAIL MODAL */}
+              {showFullEmail && currMonster && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+                  <div className="relative w-full max-w-2xl rounded-2xl bg-[#0c1222] border border-slate-700 p-6 text-white max-h-[80vh] flex flex-col">
+                    <div className="flex justify-between items-center border-b border-slate-800 pb-3 mb-4">
+                      <h3 className="font-semibold text-sm truncate pr-4 text-white">{currMonster.subject}</h3>
+                      <button onClick={() => setShowFullEmail(false)} className="text-slate-400 hover:text-white">✕</button>
+                    </div>
+                    <div className="text-xs text-slate-400 font-mono mb-4">
+                      From: {currMonster.sender} &lt;{currMonster.senderEmail}&gt; • Date: {currMonster.date}
+                    </div>
+                    <div className="overflow-y-auto flex-1 p-4 bg-slate-950 rounded-xl border border-slate-800 text-xs text-slate-300 font-mono whitespace-pre-wrap leading-relaxed">
+                      {currMonster.fullBody}
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-slate-800 flex justify-end">
+                      <button onClick={() => setShowFullEmail(false)} className="px-4 py-2 rounded-lg bg-cyber-blue text-black font-arcade text-[10px]">
+                        RETURN TO ARENA
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          )}
+
+          {/* CONNECT GMAIL MODAL */}
+          {isGmailModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+              <div className="relative w-full max-w-lg rounded-2xl bg-[#0c1222] border-2 border-cyber-pink p-6 text-white shadow-neon-pink">
+                <button onClick={() => setIsGmailModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white">✕</button>
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-cyber-pink/20 border border-cyber-pink flex items-center justify-center text-cyber-pink text-2xl">✉️</div>
+                  <div>
+                    <span className="font-arcade text-[10px] text-cyber-pink uppercase">STAGE 5 ROADMAP</span>
+                    <h3 className="font-arcade text-base sm:text-lg text-white mt-0.5">GMAIL OAUTH NETLINK</h3>
+                  </div>
+                </div>
+                <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 mb-5 leading-relaxed">
+                  <p className="font-semibold text-white uppercase text-[11px] mb-1">Google Workspace Sandbox Mode</p>
+                  <p className="text-slate-400">
+                    Live Gmail OAuth is scheduled for Stage 5. Playable Demo Mode features 25 realistic email monsters, 5 campaign levels, and procedural sound effects ready right now!
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => { sound.playCoin(); setIsGmailModalOpen(false); setView('arena'); }} className="flex-1 py-3 px-4 rounded-xl font-arcade text-xs text-black bg-gradient-to-r from-cyber-blue via-cyber-purple to-cyber-pink shadow-neon-blue">
+                    ⚔️ ENTER DEMO BATTLE
+                  </button>
+                  <button onClick={() => setIsGmailModalOpen(false)} className="py-3 px-5 rounded-xl font-mono text-xs text-slate-400 bg-slate-900 border border-slate-800">
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
